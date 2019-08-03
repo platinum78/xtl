@@ -31,17 +31,18 @@ public: // Define sub-classes for nodes and edges.
     public:
         Node();
         Node(T_data);
-        Node(Node &);
+        Node(Node &node);
         ~Node();
 
     public:
         T_data GetData();
-        void SetData(T_data);
+        void SetData(T_data data);
 
     public:
-        bool AddEdge(Edge *);
-        bool DelEdge(Edge *);
-        bool EdgeExists(Edge *);
+        int AddEdge(Edge *edge_ptr);
+        int DelEdge(Edge *edge_ptr);
+        int DisconnectEdge(Edge *edge_ptr);
+        bool EdgeExists(Edge *edge_ptr);
 
     private:
         T_data data_;
@@ -52,8 +53,8 @@ public: // Define sub-classes for nodes and edges.
     {
     public:
         Edge();
-        Edge(Node *, Node *, T_weight, bool);
-        Edge(Edge &);
+        Edge(Node * node1_ptr, Node *node2_ptr, T_weight, bool bidirectional);
+        Edge(Edge &edge);
         ~Edge();
 
     public:
@@ -63,10 +64,10 @@ public: // Define sub-classes for nodes and edges.
         bool IsBidirectional();
 
     public:
-        void SetNode1(Node *);
-        void SetNode2(Node *);
-        void SetWeight(T_weight);
-        void SetBidirectional(bool);
+        void SetNode1(Node *node1_ptr);
+        void SetNode2(Node *node2_ptr);
+        void SetWeight(T_weight weight);
+        void SetBidirectional(bool bidirectional);
 
     private:
         Node *node1_ptr_;
@@ -76,17 +77,18 @@ public: // Define sub-classes for nodes and edges.
     };
 
 public:
-    int AddNode(T_data);
-    int DelNode(T_data);
-    int ConnectNodes(T_data, T_data, T_weight);
-    int ConnectNodes(Node *, Node *, T_weight);
-    int DisconnectNodes(T_data, T_data);
+    int AddNode(T_data data);
+    int DelNode(T_data data);
+    int ConnectNodes(T_data node1_data, T_data node2_data, T_weight weight);
+    int ConnectNodes(Node *node1_ptr, Node *node2_ptr, T_weight weight);
+    int DisconnectNodes(T_data node1_data, T_data node2_data);
+    int DisconnectNodes(Node *node1_ptr, Node *node2_ptr);
 
 public:
-    Node *GetNodeAddr(T_data);
-    bool NodeExists(T_data);
-    bool NodesConnected(T_data, T_data);
-    bool NodesConnected(Node *, Node *);
+    Node *GetNodeAddr(T_data data);
+    bool NodeExists(T_data data);
+    bool NodesConnected(T_data node1_data, T_data node2_data);
+    bool NodesConnected(Node * node1_ptr, Node *node2_ptr);
 
 private:
     std::list<Node *> node_list_;
@@ -273,12 +275,45 @@ void xtl::Graph<T_data, T_weight>::Node::SetData(T_data data)
 
 // Check if edge exists; if not, add edge to neighbors_ list.
 template <typename T_data, typename T_weight>
-bool xtl::Graph<T_data, T_weight>::Node::AddEdge(Edge *edge_ptr)
+int xtl::Graph<T_data, T_weight>::Node::AddEdge(Edge *edge_ptr)
 {
     if (EdgeExists(edge_ptr))
-        return false;
+        return EDGE_EXISTS;
     neighbors_.push_back(edge_ptr);
-    return true;
+    return SUCCESS;
+}
+
+// Check if edge exists; if not, add edge to neighbors_ list.
+template <typename T_data, typename T_weight>
+int xtl::Graph<T_data, T_weight>::Node::DelEdge(Edge *edge_ptr)
+{
+    typename std::list<Edge *>::iterator iter;
+    for (iter = neighbors_.begin(); iter != neighbors_.end(); iter++)
+    {
+        if (*iter == edge_ptr)
+        {
+            neighbors_.erase(iter);
+            delete edge_ptr;
+            return SUCCESS;
+        }
+    }
+    return EDGE_NOT_EXISTS;
+}
+
+// Check if edge exists; if not, add edge to neighbors_ list.
+template <typename T_data, typename T_weight>
+int xtl::Graph<T_data, T_weight>::Node::DisconnectEdge(Edge *edge_ptr)
+{
+    typename std::list<Edge *>::iterator iter;
+    for (iter = neighbors_.begin(); iter != neighbors_.end(); iter++)
+    {
+        if (*iter == edge_ptr)
+        {
+            neighbors_.erase(iter);
+            return SUCCESS;
+        }
+    }
+    return EDGE_NOT_EXISTS;
 }
 
 // Return true if edge exists, false if not.
@@ -365,6 +400,13 @@ std::ostream &operator<<(std::ostream &out, typename xtl::Graph<T_data, T_weight
 {
     out << "Node 1: " << e.node1_ptr_->GetData() << ", Node 2: " << e.node2_ptr_->GetData();
     out << ", Weight: " << e.node1_ptr_->GetWeight();
+    return out;
+}
+
+template <typename T_data, typename T_weight>
+std::ostream &operator<<(std::ostream &out, typename xtl::Graph<T_data, T_weight>::Node &n)
+{
+    out << "Data: " << n.data_;
     return out;
 }
 
